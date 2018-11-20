@@ -1,0 +1,31 @@
+{
+  "name": "wallet-bridge",
+  "version": "0.0.1",
+  "description": "wallet-bridge inspired by trezor-bridge, interface to interact with hw/sw wallets",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "nodemon --watch src --exec 'prettier --write 'src/**/*' && rollup -c && node dist/index.js'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MyEtherWallet/wallet-bridge.git"
+  },
+  "author": "kvhnuke & #teamMEW",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MyEtherWallet/wallet-bridge/issues"
+  },
+  "homepage": "https://github.com/MyEtherWallet/wallet-bridge#readme",
+  "devDependencies": {
+    "@babel/core": "^7.1.6",
+    "@babel/preset-env": "^7.1.6",
+    "nodemon": "^1.18.6",
+    "prettier": "^1.15.2",
+    "rollup": "^0.67.3",
+    "rollup-plugin-babel": "^4.0.3",
+    "rollup-plugin-json": "^3.1.0"
+  },
+  "files": [
+    "dist/**/*"
+  ]
+}
