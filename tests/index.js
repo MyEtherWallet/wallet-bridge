@@ -8,7 +8,17 @@ socket.on('connect', () => {
   })
 })
 socket.on(TrezorEvents.TREZOR_CONNECT, () => {
-  socket.emit(TrezorEvents.TREZOR_PUBKEY, "m/44'/60'/0'/0", console.log)
+  socket.emit(TrezorEvents.TREZOR_PUBKEY, "m/44'/60'/0'/0", (err, result) => {
+    console.log('pubkey', err, result)
+    socket.emit(
+      TrezorEvents.TREZOR_SIGN_MSG,
+      "m/44'/60'/0'/0/0",
+      '0x68656c6c6f', //hello
+      (err, result) => {
+        console.log('msgSign', err, result)
+      }
+    )
+  })
 })
 socket.on(TrezorEvents.TREZOR_PIN, cb => {
   console.log('Please enter PIN. The positions:')

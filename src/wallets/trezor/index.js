@@ -1,7 +1,13 @@
 import { DeviceList } from 'trezor.js'
 import Events from '../../events'
 import TrezorEvents from './events'
-import { parseHDPath } from './utils'
+import {
+  parseHDPath,
+  sanitizeHex,
+  stripHexPrefix,
+  getBufferFromHex
+} from './utils'
+import ethTx from 'ethereumjs-tx'
 class Trezor {
   constructor(client) {
     this.client = client
@@ -41,6 +47,12 @@ class Trezor {
     this.client.on(TrezorEvents.TREZOR_PUBKEY, (path, cb) => {
       this.getPublicKey(deviceList, path, cb)
     })
+    this.client.on(TrezorEvents.TREZOR_SIGN_TX, (path, txRLP, cb) => {
+      this.signTransaction(deviceList, path, txRLP, cb)
+    })
+    this.client.on(TrezorEvents.TREZOR_SIGN_MSG, (path, msgHex, cb) => {
+      this.signMessage(deviceList, path, msgHex, cb)
+    })
   }
   getPublicKey(deviceList, path, cb) {
     deviceList
@@ -52,6 +64,50 @@ class Trezor {
             publicKey: payload.message.node.public_key
           })
         })
+      })
+      .catch(err => {
+        cb(err.message)
+      })
+  }
+  signTransaction(deviceList, path, txRLP, cb) {
+    const tx = new ethTx(txRLP)
+    deviceList
+      .acquireFirstDevice(true)
+      .then(({ session }) => {
+        session
+          .signEthTx(
+            parseHDPath(path),
+            stripHexPrefix(sanitizeHex(tx.nonce.toString('hex'))),
+            stripHexPrefix(sanitizeHex(tx.gasPrice.toString('hex'))),
+            stripHexPrefix(sanitizeHex(tx.gasLimit.toString('hex'))),
+            stripHexPrefix(sanitizeHex(tx.to.toString('hex'))),
+            stripHexPrefix(sanitizeHex(tx.value.toString('hex'))),
+            stripHexPrefix(sanitizeHex(tx.data.toString('hex'))),
+            tx.getChainId()
+          )
+          .then(sig => {
+            tx.v = getBufferFromHex(sig.v.toString(16))
+            tx.r = getBufferFromHex(sig.r)
+            tx.s = getBufferFromHex(sig.s)
+            cb(null, tx.serialize().toString('hex'))
+          })
+      })
+      .catch(err => {
+        cb(err.message)
+      })
+  }
+  signMessage(deviceList, path, hexMsg, cb) {
+    deviceList
+      .acquireFirstDevice(true)
+      .then(({ session }) => {
+        session
+          .signEthMessage(
+            parseHDPath(path),
+            stripHexPrefix(sanitizeHex(hexMsg))
+          )
+          .then(response => {
+            cb(null, response.signature)
+          })
       })
       .catch(err => {
         cb(err.message)
