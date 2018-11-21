@@ -4,13 +4,15 @@ import { Trezor } from './wallets/index'
 import Events from './events'
 
 const io = IO.listen(CONFIG.PORT)
-// io.origins(CONFIG.ORIGINS)
-io.on('connection', function(client) {
+io.origins(CONFIG.ORIGINS)
+io.on('connect', function(client) {
+  client.on('disconnect', reason => {
+    if (client.device) client.device.disconnect()
+  })
   client.on(Events.DEVICE_CONNECT, (device, cb) => {
-    console.log('test')
     switch (device) {
       case Trezor.id:
-        client.device = new Trezor.class(client)
+        client.device = new Trezor.instance(client)
         cb(false, true)
         break
       default:
