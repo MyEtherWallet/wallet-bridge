@@ -1,6 +1,6 @@
 # Wallet-Bridge
 
-Project inspired by [Trezor-Bridge](https://github.com/trezor/trezord-go) is an interface to interact with Ethereum wallets using multiple platforms including but not limited to Web, Desktop and Browser Extensions
+Wallet-Bridge is a project inspired by [Trezor-Bridge](https://github.com/trezor/trezord-go) to interact with Ethereum wallets using multiple platforms including but not limited to Web, Desktop and Browser Extensions
 
 ## Getting Started
 
