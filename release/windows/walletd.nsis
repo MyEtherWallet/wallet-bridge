@@ -1,0 +1,82 @@
+!include MUI2.nsh
+!include x64.nsh
+!include LogicLib.nsh
+!include WinVer.nsh
+
+RequestExecutionLevel admin
+
+SetCompressor bzip2
+
+Name "Wallet Bridge"
+InstallDirRegKey HKLM Software\Wallet\Bridge InstallDir
+
+ShowInstDetails hide
+ShowUninstDetails hide
+
+XPStyle on
+
+
+Function .onInit
+UserInfo::GetAccountType
+pop $0
+${If} $0 != "admin" ;Require admin rights on NT4+
+  MessageBox mb_iconstop "You need to be an admin to install Wallet Bridge. Sorry!"
+  SetErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+  Quit
+${EndIf}
+FunctionEnd
+
+Page directory
+Page instfiles
+
+DirText "Please select the installation folder."
+
+Section "Wallet Bridge"
+  SectionIn RO
+
+  DetailPrint "Stopping previous Wallet Bridge"
+  nsExec::Exec "taskkill /IM Walletd.exe /F"
+
+  SetOutPath "$INSTDIR"
+  File /oname=Walletd.exe Walletd-64b.exe
+  File "walletd.ico"
+SectionEnd
+
+Section "Start Menu Shortcuts"
+  SetShellVarContext all
+
+  CreateDirectory "$SMPROGRAMS\Wallet Bridge"
+  CreateShortCut "$SMPROGRAMS\Wallet Bridge\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\Wallet Bridge\Wallet Bridge.lnk" "$INSTDIR\Walletd.exe" "-v -l $\"%APPDATA%\Wallet Bridge\Walletd.log$\"" "$INSTDIR\Walletd.ico" 0
+  CreateShortCut "$SMSTARTUP\Wallet Bridge.lnk" "$INSTDIR\Walletd.exe" "-v -l $\"%APPDATA%\Wallet Bridge\Walletd.log$\"" "$INSTDIR\Walletd.ico" 0
+SectionEnd
+
+Var CMDRESULT
+Var CONTAINS
+
+Section "Uninstall"
+  ExecWait "taskkill /f /im Walletd.exe"
+
+  Delete /rebootok "$SMSTARTUP\Wallet Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\Wallet Bridge\Wallet Bridge.lnk"
+  Delete /rebootok "$SMPROGRAMS\Wallet Bridge\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\Wallet Bridge"
+
+  Delete /rebootok "$INSTDIR\Walletd.exe"
+  Delete /rebootok "$INSTDIR\Walletd.ico"
+  Delete /rebootok "$INSTDIR\Uninstall.exe"
+  RMDir "$INSTDIR"
+SectionEnd
+
+Section -post
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_TEXT "Start Wallet Bridge"
+!define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApplication"
+!insertmacro MUI_PAGE_FINISH
+
+Function LaunchApplication
+  ExecShell "" "$SMPROGRAMS\Wallet Bridge\Wallet Bridge.lnk"
+FunctionEnd

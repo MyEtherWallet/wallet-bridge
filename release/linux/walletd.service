@@ -1,0 +1,11 @@
+[Unit]
+Description=Wallet Bridge
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/walletd
+User=walletd
+
+[Install]
+WantedBy=multi-user.target

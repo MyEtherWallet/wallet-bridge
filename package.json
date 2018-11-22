@@ -7,12 +7,11 @@
   "scripts": {
     "start": "nodemon --watch src --exec 'prettier --write 'src/**/*' && rollup -c && node dist/index.js'",
     "test": "nodemon --watch tests --exec 'prettier --write 'tests/**/*' && babel-node tests/index.js'",
-    "build:windows64": "nexe -i dist/index.js --targets windows-x86-8.12.0 -o build/wallet-bridge-win32",
-    "build:windows32": "nexe -i dist/index.js --targets windows-x64-8.12.0 -o build/wallet-bridge-win64",
+    "build:windows": "nexe -i dist/index.js --targets windows-x64-8.12.0 -o build/wallet-bridge-win64",
     "build:linux": "nexe -i dist/index.js --targets linux-x64-8.12.0 -o build/wallet-bridge-linux64",
     "build:macos": "nexe -i dist/index.js --targets darwin-x64-8.12.0 -o build/wallet-bridge-macos64",
     "build:node": "rollup -c",
-    "build": "npm run build:node && npm run build:windows64 && npm run build:windows32 && npm run build:linux && npm run build:macos"
+    "build": "npm run build:node && npm run build:windows && npm run build:linux && npm run build:macos"
   },
   "repository": {
     "type": "git",
