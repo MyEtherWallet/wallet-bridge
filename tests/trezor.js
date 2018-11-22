@@ -32,11 +32,11 @@ const runner = () => {
     console.log('pubkey', err, result)
     if (!err) {
       assert(
-        '511e49abcba88b9a09cd46b4fd37ebf57a1a3b4fb49919c58f49b0b43b27cccc' ===
+        '05110d298e04fe1fa17887f9c56286eb21d1f28d8537e5f45541070945b63bea' ===
           result.chainCode
       )
       assert(
-        '04ad4206e60b65507fa7718da3d04d0eb1076418013fede6c441925afd67e0f1df329676ec63c5cf8d9a6f91e9bd6c5aaca0895aed9c8c8ec47e27c098f7698312' ===
+        '03050872e2b0698a05458e8b2ae8da72c6ef072017f431fb3eac5dac92be7e0fb1' ===
           result.publicKey
       )
     }
@@ -48,7 +48,7 @@ const runner = () => {
         console.log('msgSign', err, result)
         if (!err) {
           assert(
-            '0x8252bcf4186f6215a7240b251911d861b950d7ad25665a855fa29ca2ccd088ca5d48459f8c4b668e86a69b00f400d7ecffbd9aeaef3876a5dbbe4fafb9295ee201' ===
+            '0x5323419cc3e9c8b6b15067ec44ec8d74de86437f7d6a005326a05a63e0d0ccc2475f6f5b75dfaf822740cf49b33ad0bda7aaa77213b6064c16177168d882ae841c' ===
               '0x' + result
           )
         }
@@ -56,6 +56,21 @@ const runner = () => {
     )
   })
 }
+
+socket.on(TrezorEvents.TREZOR_PIN, cb => {
+  console.log('Please enter PIN. The positions:')
+  console.log('7 8 9')
+  console.log('4 5 6')
+  console.log('1 2 3')
+  process.stdin.resume()
+  process.stdin.on('data', buffer => {
+    var text = buffer.toString().replace(/\n$/, '')
+    process.stdin.pause()
+    cb(null, text)
+  })
+})
+socket.on(TrezorEvents.TREZOR_PASSWORD, console.log)
+socket.on(TrezorEvents.TREZOR_ACTION, console.log)
 socket.on('error', (err, res) => {
   console.log('ERROR', err, res)
 })
