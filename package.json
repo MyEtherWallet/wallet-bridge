@@ -29,6 +29,8 @@
     "@babel/plugin-transform-runtime": "^7.1.0",
     "@babel/preset-env": "^7.1.6",
     "@babel/runtime": "^7.1.5",
+    "bytebuffer": "^5.0.1",
+    "kill-port": "^1.3.2",
     "nexe": "^3.0.0-beta.9",
     "nodemon": "^1.18.6",
     "prettier": "^1.15.2",
@@ -42,6 +44,7 @@
     "dist/**/*"
   ],
   "dependencies": {
+    "@keepkey/device-client": "^5.10.2",
     "@ledgerhq/hw-app-eth": "^4.24.0",
     "@ledgerhq/hw-transport-node-hid": "^4.24.0",
     "babel-runtime": "^6.26.0",

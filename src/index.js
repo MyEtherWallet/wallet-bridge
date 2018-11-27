@@ -1,14 +1,17 @@
 import IO from 'socket.io'
 import CONFIG from './config'
-import { Trezor, Ledger, WalletInterface } from './wallets/index'
+import { Trezor, Ledger, Keepkey, WalletInterface } from './wallets/index'
 import Events from './events'
 
+import { getKeepKeyDevice } from './wallets/keepkey/utils'
 const trezor = new Trezor()
 const ledger = new Ledger()
+const keepkey = new Keepkey()
 
 const initWallets = async () => {
   await trezor.init()
   await ledger.init()
+  await keepkey.init()
 }
 const io = IO.listen(CONFIG.PORT)
 io.origins(CONFIG.ORIGINS)
@@ -21,6 +24,10 @@ initWallets().then(() => {
       switch (device) {
         case trezor.identifier:
           client.device = new WalletInterface(client, trezor)
+          cb(false, true)
+          break
+        case keepkey.identifier:
+          client.device = new WalletInterface(client, keepkey)
           cb(false, true)
           break
         case ledger.identifier:
