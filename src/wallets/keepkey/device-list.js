@@ -11,9 +11,8 @@ class KeepKeyDevices extends EventEmitter {
         const devices = getConnectedDevices()
         devices.forEach(device => {
           if (!this.connectedDevices.includes(device.path)) {
-            NodeTransport.factory(devices[0], client => {
+            NodeTransport.factory(device, client => {
               client.initialize().then(() => {
-                console.log(client)
                 this.emit('connect', client)
               })
             })
@@ -37,18 +36,8 @@ class KeepKeyDevices extends EventEmitter {
       }
     }, this.pollInterval)
   }
-  acquireFirstDevice() {
-    return new Promise((resolve, reject) => {
-      const devices = getConnectedDevices()
-      NodeTransport.factory(devices[0], client => {
-        client
-          .initialize()
-          .then(() => {
-            resolve(client)
-          })
-          .catch(reject)
-      })
-    })
+  stopPolling() {
+    this.clearInterval(this.interval)
   }
 }
 export default KeepKeyDevices

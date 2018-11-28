@@ -7,13 +7,22 @@ class Ledger {
     this.identifier = 'ledger'
   }
   async init() {
-    this.transport = await Transport.create(5000)
-    this.ledger = new AppEth(this.transport)
+    this.interval = setInterval(async () => {
+      const _devices = await Transport.list()
+      if (_devices.length) {
+        this.transport = await Transport.create(2000)
+        this.ledger = new AppEth(this.transport)
+      } else {
+        this.transport = null
+        this.ledger = null
+      }
+    }, 2000)
   }
-  async disconnect() {}
+  async disconnect() {
+    clearInterval(this.interval)
+  }
   async isAvailable() {
-    const devices = await Transport.list()
-    return devices.length > 0
+    return this.ledger != null
   }
   async getPublicKey(path) {
     const pubObj = await this.ledger.getAddress(path, false, true)

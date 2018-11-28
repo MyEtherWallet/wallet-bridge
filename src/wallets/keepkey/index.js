@@ -1,8 +1,7 @@
 import DeviceList from './device-list'
 import KeepKeyEvents from './events'
-import { DeviceMessageHelper } from "@keepkey/device-client/dist/device-message-helper";
-import { NodeVector } from "@keepkey/device-client/dist/node-vector";
-import { isDeviceConnected } from './utils'
+import { DeviceMessageHelper } from '@keepkey/device-client/dist/device-message-helper'
+import { NodeVector } from '@keepkey/device-client/dist/node-vector'
 import { sanitizeHex, stripHexPrefix, getBufferFromHex } from '../utils'
 import ethTx from 'ethereumjs-tx'
 class KeepKey {
@@ -11,7 +10,7 @@ class KeepKey {
     this.deviceSession = null
   }
   init() {
-    const deviceList = new DeviceList(2000)
+    this.deviceList = new DeviceList(500)
     const onDevice = device => {
       device.on('ButtonRequest', () => {
         this.client.emit(KeepKeyEvents.KEEPKEY_ACTION)
@@ -28,16 +27,15 @@ class KeepKey {
           else device.PinMatrixAck('')
         })
       })
-      deviceList.acquireFirstDevice().then(session => {
-        if (!this.deviceSession) this.deviceSession = session
+      this.deviceSession = device
+      this.deviceList.on('disconnect', () => {
+        if (device) device.destroy()
+        this.deviceSession = null
+        this.deviceList.removeAllListeners()
+        this.deviceList.on('connect', onDevice)
       })
     }
-    deviceList.on('connect', onDevice)
-    deviceList.on('disconnect', () => {
-      deviceList.acquireFirstDevice().then(session => {
-        this.deviceSession = session
-      })
-    })
+    this.deviceList.on('connect', onDevice)
   }
   setClient(client) {
     this.client = client
@@ -58,8 +56,8 @@ class KeepKey {
   signTransaction(path, txRLP) {
     return new Promise((resolve, reject) => {
       const tx = new ethTx(txRLP)
-      var message = DeviceMessageHelper.factory("EthereumSignTx");
-      message.setAddressN(NodeVector.fromString(path).toArray());
+      var message = DeviceMessageHelper.factory('EthereumSignTx')
+      message.setAddressN(NodeVector.fromString(path).toArray())
       message.setNonce(tx.nonce)
       message.setGasLimit(tx.gasLimit)
       message.setGasPrice(tx.gasPrice)
@@ -68,27 +66,35 @@ class KeepKey {
       message.setDataInitialChunk(tx.data)
       message.setChainId(tx.getChainId())
       message.setDataLength(tx.data.length)
-      this.deviceSession.writeToDevice(message).then(sig => {
-        tx.v = getBufferFromHex(sig.signature_v.toString(16))
-        tx.r = getBufferFromHex(sig.signature_r.toString('hex'))
-        tx.s = getBufferFromHex(sig.signature_s.toString('hex'))
-        resolve(tx.serialize().toString('hex'))
-      }).catch(reject)
+      this.deviceSession
+        .writeToDevice(message)
+        .then(sig => {
+          tx.v = getBufferFromHex(sig.signature_v.toString(16))
+          tx.r = getBufferFromHex(sig.signature_r.toString('hex'))
+          tx.s = getBufferFromHex(sig.signature_s.toString('hex'))
+          resolve(tx.serialize().toString('hex'))
+        })
+        .catch(reject)
     })
   }
   signMessage(path, hexMsg) {
     return new Promise((resolve, reject) => {
-      var message = DeviceMessageHelper.factory("EthereumSignMessage");
-      message.setAddressN(NodeVector.fromString(path).toArray());
-      message.setMessage(getBufferFromHex(stripHexPrefix(sanitizeHex(hexMsg))));
-      this.deviceSession.writeToDevice(message).then(response => {
-            resolve(response.signature.toString('hex'))
-          }).catch(reject)
+      var message = DeviceMessageHelper.factory('EthereumSignMessage')
+      message.setAddressN(NodeVector.fromString(path).toArray())
+      message.setMessage(getBufferFromHex(stripHexPrefix(sanitizeHex(hexMsg))))
+      this.deviceSession
+        .writeToDevice(message)
+        .then(response => {
+          resolve(response.signature.toString('hex'))
+        })
+        .catch(reject)
     })
   }
   async isAvailable() {
     return this.deviceSession != null
   }
-  disconnect() {}
+  disconnect() {
+    this.deviceList.stopPolling()
+  }
 }
 export default KeepKey

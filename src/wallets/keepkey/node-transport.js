@@ -14,7 +14,7 @@ ReportIdAB[0] = REPORT_ID
 
 export default class NodeTransport extends Transport {
   static factory(hidDevice, callback) {
-    callback(DeviceClientManager.instance.factory(new NodeTransport(hidDevice)))
+    callback(new DeviceClientManager().factory(new NodeTransport(hidDevice)))
   }
 
   constructor(hidDevice) {
@@ -23,6 +23,8 @@ export default class NodeTransport extends Transport {
       deviceId: hidDevice.serialNumber,
       productId: hidDevice.productId
     })
+    this.hid = new HID(hidDevice.path)
+    this.hid.close()
     this.hid = new HID(hidDevice.path)
   }
 
