@@ -1,14 +1,14 @@
 import assert from 'assert'
 import io from 'socket.io-client'
 import Events from '../src/events'
-import BitboxEvents from '../src/wallets/bitbox/events'
+import KeepKeyEvents from '../src/wallets/keepkey/events'
 const socket = io('ws://localhost:6577')
 const timeoutPromiseFn = t =>
   new Promise(resolve => {
     setTimeout(() => resolve(), t)
   })
 socket.on('connect', () => {
-  socket.emit(Events.DEVICE_CONNECT, 'bitbox', (err, res) => {
+  socket.emit(Events.DEVICE_CONNECT, 'keepkey', (err, res) => {
     console.log(err, res)
     if (!err) {
       const checkAvaialble = () => {
@@ -32,11 +32,11 @@ const runner = () => {
     console.log('pubkey', err, result)
     if (!err) {
       assert(
-        '0477a352b8edb58aacd4fff8cc336b5d0ef87cd411cdbce41c45d40048bf9777' ===
+        '054626145550f913ba06a7ea570b5e292538fccb6946b179582da15f42e887fa' ===
           result.chainCode
       )
       assert(
-        '03ce1eb331d8b3e3628056cafe475ad59465eb612901f628fc630a6fa4fb68bd5b' ===
+        '02be54e66e07c8ea53b849df34e43d76752788e21cb5d2533d78f3288f1d07b66a' ===
           result.publicKey
       )
     }
@@ -48,7 +48,7 @@ const runner = () => {
         console.log('msgSign', err, result)
         if (!err) {
           assert(
-            '0x0e5cdd9f10bd3f3a6a63df69605d8d40c5972a1b790847cd74cd6959464143b83114ef250e0eb0c7aeb1b8a612ab35928f34599c11d785a23fc546376d5bfea31b' ===
+            '0xb98a8009848be5f2a8ec45fa5806767894ba8604a66a0c37a68daf76206f7ed678086e7f00bb67a2150ceebecb0dc2bfda5a4503208810056a1179a52a59e84e1b' ===
               '0x' + result
           )
         }
@@ -60,7 +60,7 @@ const runner = () => {
             console.log('txSign', err, result)
             if (!err) {
               assert(
-                'f8aa8207fd843b9aca008259d894199ec49df90a1d7dffd792c22934aead20304deb80b844a9059cbb000000000000000000000000585f8d56bea90ddb688ffae3695d4fc1270855800000000000000000000000000000000000000000000000000000000011e1a30026a0f8bd6324d420d8f47f60f14ce771fdce6f6cc0d4adbc935bec92f8b02645b7bba047ac7c5b1507d8f69e21f6fe86e720da5160230eb32a49398c462b9ceaf24ed5' ===
+                'f8aa8207fd843b9aca008259d894199ec49df90a1d7dffd792c22934aead20304deb80b844a9059cbb000000000000000000000000585f8d56bea90ddb688ffae3695d4fc1270855800000000000000000000000000000000000000000000000000000000011e1a30025a0ec6d25db40d67f317eb5e131b2e91a3c447f3e6cd0509f08ff1b3d635dc15ebca06d2b27407c91be37fc3f72d07651e2e64c409ae97d09f6f7f67b99375bf352a0' ===
                   result
               )
             }
@@ -71,8 +71,11 @@ const runner = () => {
   })
 }
 
-socket.on(BitboxEvents.BITBOX_PASSWORD, cb => {
-  console.log('Please enter the password')
+socket.on(KeepKeyEvents.KEEPKEY_PIN, cb => {
+  console.log('Please enter PIN. The positions:')
+  console.log('7 8 9')
+  console.log('4 5 6')
+  console.log('1 2 3')
   process.stdin.resume()
   process.stdin.on('data', buffer => {
     var text = buffer.toString().replace(/\n$/, '')
@@ -80,8 +83,9 @@ socket.on(BitboxEvents.BITBOX_PASSWORD, cb => {
     cb(null, text)
   })
 })
-socket.on(BitboxEvents.BITBOX_ACTION, () => {
-  console.log('Press and hold the led for 3 secs')
+socket.on(KeepKeyEvents.KEEPKEY_PASSWORD, console.log)
+socket.on(KeepKeyEvents.KEEPKEY_ACTION, () => {
+  console.log('button action')
 })
 socket.on('error', (err, res) => {
   console.log('ERROR', err, res)

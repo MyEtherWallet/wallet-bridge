@@ -13,7 +13,11 @@ class WalletInterface {
     this.client.on(Events.IS_AVAILABLE, this.isAvailable.bind(this))
   }
   setWalletSpecificFunctions() {
-    if (this.walletIdentifier == 'trezor' || this.walletIdentifier == 'keepkey')
+    if (
+      this.walletIdentifier == 'trezor' ||
+      this.walletIdentifier == 'keepkey' ||
+      this.walletIdentifier == 'bitbox'
+    )
       this.wallet.setClient(this.client)
   }
   getPublicKey(path, cb) {
