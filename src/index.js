@@ -12,7 +12,6 @@ import Events from './events'
 const trezor = new Trezor()
 const ledger = new Ledger()
 const keepkey = new Keepkey()
-const keepkey2 = new Keepkey()
 
 const initWallets = async () => {
   await trezor.init()
