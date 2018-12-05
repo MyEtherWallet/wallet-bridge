@@ -16,7 +16,8 @@ class WalletInterface {
     if (
       this.walletIdentifier == 'trezor' ||
       this.walletIdentifier == 'keepkey' ||
-      this.walletIdentifier == 'bitbox'
+      this.walletIdentifier == 'bitbox' ||
+      this.walletIdentifier == 'secalot'
     )
       this.wallet.setClient(this.client)
   }

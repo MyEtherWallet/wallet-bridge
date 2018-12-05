@@ -5,6 +5,7 @@ import {
   Ledger,
   Keepkey,
   Bitbox,
+  Secalot,
   WalletInterface
 } from './wallets/index'
 import Events from './events'
@@ -13,18 +14,21 @@ const trezor = new Trezor()
 const ledger = new Ledger()
 const keepkey = new Keepkey()
 const bitbox = new Bitbox()
+const secalot = new Secalot()
 
 const initWallets = async () => {
   await trezor.init()
   await ledger.init()
   await keepkey.init()
   await bitbox.init()
+  await secalot.init()
 }
 setInterval(() => {
   console.log('LEDGER DEVICE', ledger.isAvailable())
   console.log('TREZOR DEVICE', trezor.isAvailable())
   console.log('KEEPKEY DEVICE', keepkey.isAvailable())
   console.log('BITBOX DEVICE', bitbox.isAvailable())
+  console.log('SECALOT DEVICE', secalot.isAvailable())
 }, 1000)
 const io = IO.listen(CONFIG.PORT)
 io.origins(CONFIG.ORIGINS)
@@ -49,6 +53,10 @@ initWallets().then(() => {
           break
         case ledger.identifier:
           client.device = new WalletInterface(client, ledger)
+          cb(false, true)
+          break
+        case secalot.identifier:
+          client.device = new WalletInterface(client, secalot)
           cb(false, true)
           break
         default:

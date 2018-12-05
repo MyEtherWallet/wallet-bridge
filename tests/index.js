@@ -1,14 +1,19 @@
 import assert from 'assert'
 import io from 'socket.io-client'
 import Events from '../src/events'
-import BitboxEvents from '../src/wallets/bitbox/events'
+import SecalotEvents from '../src/wallets/secalot/events'
+import EC from 'elliptic'
+import keccak from 'keccak'
+import ethTx from 'ethereumjs-tx'
+import { stripHexPrefix } from '../src/wallets/utils'
+
 const socket = io('ws://localhost:6577')
 const timeoutPromiseFn = t =>
   new Promise(resolve => {
     setTimeout(() => resolve(), t)
   })
 socket.on('connect', () => {
-  socket.emit(Events.DEVICE_CONNECT, 'bitbox', (err, res) => {
+  socket.emit(Events.DEVICE_CONNECT, 'secalot', (err, res) => {
     console.log(err, res)
     if (!err) {
       const checkAvaialble = () => {
@@ -28,41 +33,65 @@ socket.on('connect', () => {
   })
 })
 const runner = () => {
-  socket.emit(Events.GET_PUBKEY, "m/44'/60'/0'/0", (err, result) => {
+  socket.emit(Events.GET_PUBKEY, "m/44'/60'/0'/0/0", (err, result) => {
     console.log('pubkey', err, result)
-    if (!err) {
-      assert(
-        '0477a352b8edb58aacd4fff8cc336b5d0ef87cd411cdbce41c45d40048bf9777' ===
-          result.chainCode
-      )
-      assert(
-        '03ce1eb331d8b3e3628056cafe475ad59465eb612901f628fc630a6fa4fb68bd5b' ===
-          result.publicKey
-      )
-    }
+
+    var ec = new EC.ec('secp256k1')
+    var publicKey = ec.keyFromPublic(result.publicKey, 'hex')
+
+    var messageToSign = '0x68656c6c6f' //hello
+
     socket.emit(
       Events.SIGN_MESSAGE,
       "m/44'/60'/0'/0/0",
-      '0x68656c6c6f', //hello
+      messageToSign,
       (err, result) => {
         console.log('msgSign', err, result)
         if (!err) {
-          assert(
-            '0x0e5cdd9f10bd3f3a6a63df69605d8d40c5972a1b790847cd74cd6959464143b83114ef250e0eb0c7aeb1b8a612ab35928f34599c11d785a23fc546376d5bfea31b' ===
-              '0x' + result
-          )
+          messageToSign = stripHexPrefix(messageToSign)
+          var header =
+            '\x19Ethereum Signed Message:\n' +
+            (messageToSign.length / 2).toString()
+          messageToSign =
+            Buffer.from(header, 'utf8').toString('hex') + messageToSign
+
+          var signature = {
+            r: result.substring(0, 64),
+            s: result.substring(64, 64 + 64)
+          }
+
+          var hash = keccak('keccak256')
+            .update(Buffer.from(messageToSign, 'hex'))
+            .digest()
+
+          assert(publicKey.verify(hash, signature) === true)
         }
+        var txToSign =
+          '0xEC0485055AE826008252089451BFCEE6732EEDF1DAAA30F6414AEFFE7B0FA7C288016345785D8A000080038080'
         socket.emit(
           Events.SIGN_TRANSACTION,
           "m/44'/60'/0'/0/0",
-          '0xf8aa8207fd843b9aca008259d894199ec49df90a1d7dffd792c22934aead20304deb80b844a9059cbb000000000000000000000000585f8d56bea90ddb688ffae3695d4fc1270855800000000000000000000000000000000000000000000000000000000011e1a30026a04ecef7dfaf0a29d730f9ef18ffb994e9df94da775747ad20add47b4662cb919ca017a466e9917d0e6481a80483d4ef0122bf3531a89b84e3fdf5ee9b33829af2af', //hello
+          txToSign,
           (err, result) => {
             console.log('txSign', err, result)
             if (!err) {
-              assert(
-                'f8aa8207fd843b9aca008259d894199ec49df90a1d7dffd792c22934aead20304deb80b844a9059cbb000000000000000000000000585f8d56bea90ddb688ffae3695d4fc1270855800000000000000000000000000000000000000000000000000000000011e1a30026a0f8bd6324d420d8f47f60f14ce771fdce6f6cc0d4adbc935bec92f8b02645b7bba047ac7c5b1507d8f69e21f6fe86e720da5160230eb32a49398c462b9ceaf24ed5' ===
-                  result
-              )
+              var signedTx = new ethTx(result)
+              var tx = new ethTx(txToSign)
+              tx.raw[6] = Buffer.from([tx._chainId])
+              tx.raw[7] = Buffer.from([])
+              tx.raw[8] = Buffer.from([])
+              tx = tx.serialize()
+
+              var signature = {
+                r: signedTx.r.toString('hex'),
+                s: signedTx.s.toString('hex')
+              }
+
+              var hash = keccak('keccak256')
+                .update(tx)
+                .digest()
+
+              assert(publicKey.verify(hash, signature) === true)
             }
           }
         )
@@ -71,17 +100,17 @@ const runner = () => {
   })
 }
 
-socket.on(BitboxEvents.BITBOX_PASSWORD, cb => {
-  console.log('Please enter the password')
+socket.on(SecalotEvents.SECALOT_PIN, cb => {
+  console.log('Please enter the PIN-code')
   process.stdin.resume()
   process.stdin.on('data', buffer => {
-    var text = buffer.toString().replace(/\n$/, '')
+    var text = buffer.toString().replace(/(\n|\r)+$/, '')
     process.stdin.pause()
     cb(null, text)
   })
 })
-socket.on(BitboxEvents.BITBOX_ACTION, () => {
-  console.log('Press and hold the led for 3 secs')
+socket.on(SecalotEvents.SECALOT_CONFIRM, () => {
+  console.log('Press the touch button on your device.')
 })
 socket.on('error', (err, res) => {
   console.log('ERROR', err, res)
