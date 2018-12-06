@@ -8,7 +8,7 @@ Wallet-Bridge is a project inspired by [Trezor-Bridge](https://github.com/trezor
 - [x] Trezor
 - [x] KeepKey
 - [x] Digital BitBox
-- [ ] Secalot
+- [x] Secalot
 
 ## Getting Started
 
