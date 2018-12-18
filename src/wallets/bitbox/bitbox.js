@@ -1,5 +1,6 @@
 import os from 'os'
-import { decryptAES, encryptAES, doubleHash, openDevice } from './utils'
+import semver from 'semver'
+import { encryptAES, decryptAES, appendHMAC, checkHMAC, doubleHash, sha512, getDeviceInfo, openDevice } from './utils'
 
 const usbReportSize = 64
 const hwwCID = 0xff000000
@@ -111,13 +112,38 @@ const read = device => {
   return response
 }
 
+const handleResponse = (device, version, encryptionKey, authenticationKey) => {
+  return new Promise((resolve, reject) => {
+    let response = read(device)
+    if (response.ciphertext) {
+      let decodedBytes = Buffer.from(response.ciphertext, 'base64')
+
+      if (version && semver.gte(version, '5.0.0')) {
+        // checks the HMAC and, on success, calls the decrypt function
+        cryptography.checkHMAC(authenticationKey, decodedBytes).then(encryptedBytes => {
+          decryptAES(encryptionKey, encryptedBytes).then(JSON.parse(resolve));
+        }, reject);
+      } else {
+        decryptAES(encryptionKey, decodedBytes).then(JSON.parse(resolve));
+      }
+    } else {
+      resolve(JSON.response(response));
+    }
+  });
+}
+
 export default class Communication {
-  constructor(deviceID) {
-    if (!deviceID) {
+  constructor(deviceInfo) {
+    if (!deviceInfo) {
       throw new Error('device is not available')
     }
-    this.device = openDevice(deviceID.path)
-    this.secret = ''
+    this.device = openDevice(deviceInfo.path)
+    this.encryptionKey = '';
+    this.authenticationKey = '';
+    this.version = deviceInfo.serialNumber.match(/v([0-9]+\.[0-9]+\.[0-9]+)/g)[0];
+  }
+  setVersion(version) {
+    this.version = version;
   }
   close() {
     this.device.close()
@@ -127,28 +153,29 @@ export default class Communication {
     let response = read(this.device)
     return response
   }
-  sendEncrypted(msg, executeBeforeDecrypt) {
+  sendEncrypted(msg) {
     return new Promise(resolve => {
-      if (!this.secret || this.secret == '') {
+      if (!this.encryptionKey || this.encryptionKey == '') {
         throw 'password required'
       }
-      encryptAES(this.secret, msg).then(data => {
+      const encodeAndSend = data => {
         sendFrame(this.device, data)
-        let response = read(this.device)
-        if (response.ciphertext) {
-          if (executeBeforeDecrypt) {
-            executeBeforeDecrypt()
-          }
-          decryptAES(this.secret, response.ciphertext).then(data => {
-            resolve(JSON.parse(data))
-          })
-        } else {
-          resolve(response)
-        }
-      })
-    })
+        handleResponse(this.device, this.version, this.encryptionKey, this.authenticationKey).then(resolve, resolve);
+      }
+      if (version && semver.gte(version, '5.0.0')) {
+        encryptAES(this.encryptionKey, msg).then(encryptedData => appendHMAC(encryptedData).then(encodeAndSend));
+      } else {
+        encryptAES(this.encryptionKey, msg).then(encodeAndSend);
+      }
+    });
   }
   setCommunicationSecret(password) {
-    this.secret = doubleHash(password)
+    if (this.version && semver.gte(this.version, '5.0.0')) {
+      let sharedSecret = cryptography.sha512(cryptography.doubleHash(password));
+      this.encryptionKey = sharedSecret.slice(0, 32);
+      this.authenticationKey = sharedSecret.slice(32);
+    } else {
+      this.encryptionKey = cryptography.doubleHash(password);
+    }
   }
 }
